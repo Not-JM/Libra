@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Libra</title>
+    <link rel="stylesheet" href="sign-in-styles.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+    <form id="survey-form" class="sign-in-box survey-box">
+        <div class="title survey-title">Just a few questions</div>
+
+        <label class="survey-label" for="interest-slider">
+            How much do you want to see this website?
+        </label>
+        <div class="slider-group">
+            <input id="interest-slider" type="range" min="1" max="10" value="5" step="1">
+            <div class="slider-scale">
+                <span>1</span>
+                <span>2</span>
+                <span>3</span>
+                <span>4</span>
+                <span>5</span>
+                <span>6</span>
+                <span>7</span>
+                <span>8</span>
+                <span>9</span>
+                <span>10</span>
+            </div>
+            <div class="slider-value">Selected: <span id="slider-value-display">5</span></div>
+        </div>
+
+        <label class="survey-label" for="ap-class">
+            What AP class do you most want to see?
+        </label>
+        <select id="ap-class" class="ap-select" required>
+            <option value="" disabled selected>Select an AP class</option>
+            <option value="AP Art History">AP Art History</option>
+            <option value="AP Music Theory">AP Music Theory</option>
+            <option value="AP English Language and Composition">AP English Language and Composition</option>
+            <option value="AP English Literature and Composition">AP English Literature and Composition</option>
+            <option value="AP African American Studies">AP African American Studies</option>
+            <option value="AP Comparative Government and Politics">AP Comparative Government and Politics</option>
+            <option value="AP European History">AP European History</option>
+            <option value="AP Human Geography">AP Human Geography</option>
+            <option value="AP Macroeconomics">AP Macroeconomics</option>
+            <option value="AP Microeconomics">AP Microeconomics</option>
+            <option value="AP Psychology">AP Psychology</option>
+            <option value="AP United States Government and Politics">AP United States Government and Politics</option>
+            <option value="AP United States History">AP United States History</option>
+            <option value="AP World History: Modern">AP World History: Modern</option>
+            <option value="AP Calculus AB">AP Calculus AB</option>
+            <option value="AP Calculus BC">AP Calculus BC</option>
+            <option value="AP Computer Science A">AP Computer Science A</option>
+            <option value="AP Computer Science Principles">AP Computer Science Principles</option>
+            <option value="AP Precalculus">AP Precalculus</option>
+            <option value="AP Statistics">AP Statistics</option>
+            <option value="AP Biology">AP Biology</option>
+            <option value="AP Chemistry">AP Chemistry</option>
+            <option value="AP Environmental Science">AP Environmental Science</option>
+            <option value="AP Physics 1: Algebra-Based">AP Physics 1: Algebra-Based</option>
+            <option value="AP Physics 2: Algebra-Based">AP Physics 2: Algebra-Based</option>
+            <option value="AP Physics C: Electricity and Magnetism">AP Physics C: Electricity and Magnetism</option>
+            <option value="AP Physics C: Mechanics">AP Physics C: Mechanics</option>
+            <option value="AP Chinese Language and Culture">AP Chinese Language and Culture</option>
+            <option value="AP French Language and Culture">AP French Language and Culture</option>
+            <option value="AP German Language and Culture">AP German Language and Culture</option>
+            <option value="AP Italian Language and Culture">AP Italian Language and Culture</option>
+            <option value="AP Japanese Language and Culture">AP Japanese Language and Culture</option>
+            <option value="AP Latin">AP Latin</option>
+            <option value="AP Spanish Language and Culture">AP Spanish Language and Culture</option>
+            <option value="AP Spanish Literature and Culture">AP Spanish Literature and Culture</option>
+        </select>
+
+        <button type="submit">SUBMIT</button>
+    </form>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const { createClient } = supabase
+        const supabaseUrl = 'https://xlmznkbswafqvwpjnysz.supabase.co'
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhsbXpua2Jzd2FmcXZ3cGpueXN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyNTA5NzgsImV4cCI6MjA5OTgyNjk3OH0.YZzATr4Ol0rmJOGNyJ3L-cFpqo6ejF-CCdimgZfVzd4' // Replace with your key
+        const _supabase = createClient(supabaseUrl, supabaseKey)
+    
+        const slider = document.getElementById('interest-slider')
+        const sliderDisplay = document.getElementById('slider-value-display')
+        const surveyForm = document.getElementById('survey-form')
+    
+        // Get user ID from URL query string
+        const urlParams = new URLSearchParams(window.location.search)
+        const userId = urlParams.get('uid')
+    
+        slider.addEventListener('input', () => {
+            sliderDisplay.textContent = slider.value
+        })
+    
+        surveyForm.addEventListener('submit', async (e) => {
+            e.preventDefault()
+    
+            if (!userId) {
+                alert('User ID missing. Please sign up again.')
+                window.location.href = 'index.html'
+                return
+            }
+    
+            const interestLevel = parseInt(slider.value, 10)
+            const apClass = document.getElementById('ap-class').value
+    
+            const { error: surveyError } = await _supabase
+                .from('surveys')
+                .insert([
+                    {
+                        user_id: userId,
+                        interest_level: interestLevel,
+                        requested_ap_class: apClass
+                    }
+                ])
+    
+            if (surveyError) {
+                console.error('Error saving survey response:', surveyError)
+                alert('Save error: ' + surveyError.message)
+                return
+            }
+    
+            window.location.href = 'sign-off.html'
+        })
+    </script>
+</body>
+
+</html>
