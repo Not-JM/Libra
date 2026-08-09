@@ -89,82 +89,86 @@
     </form>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-    // 1. Initialize Supabase
-    const { createClient } = supabase
-    const supabaseUrl = 'https://xlmznkbswafqvwpjnysz.supabase.co'
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhsbXpua2Jzd2FmcXZ3cGpueXN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyNTA5NzgsImV4cCI6MjA5OTgyNjk3OH0.YZzATr4Ol0rmJOGNyJ3L-cFpqo6ejF-CCdimgZfVzd4'
-    const _supabase = createClient(supabaseUrl, supabaseKey)
-
-    // 2. DOM Elements
-    const slider = document.getElementById('interest-slider')
-    const sliderDisplay = document.getElementById('slider-value-display')
-    const surveyForm = document.getElementById('survey-form')
-    const submitBtn = surveyForm.querySelector('button[type="submit"]')
-
-    // 3. Extract User ID from URL parameters
-    const urlParams = new URLSearchParams(window.location.search)
-    const userId = urlParams.get('uid')
-
-    // 4. Dynamic UI Updates
-    slider.addEventListener('input', () => {
-        sliderDisplay.textContent = slider.value
-    })
-
-    // 5. Form Submission Handler
-    surveyForm.addEventListener('submit', async (e) => {
-        e.preventDefault()
-
-        // Validate User Session Parameter
-        if (!userId) {
-            alert('User ID is missing from session. Please sign up again.')
-            window.location.href = 'index.html'
-            return
+    <script>
+        async function initSurvey() {
+            // 1. Fetch credentials loaded from .env by the server
+            const configRes = await fetch('/api/config')
+            const config = await configRes.json()
+    
+            const { createClient } = supabase
+            const _supabase = createClient(config.supabaseUrl, config.supabaseKey)
+    
+            // 2. DOM Elements
+            const slider = document.getElementById('interest-slider')
+            const sliderDisplay = document.getElementById('slider-value-display')
+            const surveyForm = document.getElementById('survey-form')
+            const submitBtn = surveyForm.querySelector('button[type="submit"]')
+    
+            // 3. Extract User ID from URL parameters
+            const urlParams = new URLSearchParams(window.location.search)
+            const userId = urlParams.get('uid')
+    
+            // 4. Dynamic UI Updates
+            slider.addEventListener('input', () => {
+                sliderDisplay.textContent = slider.value
+            })
+    
+            // 5. Form Submission Handler
+            surveyForm.addEventListener('submit', async (e) => {
+                e.preventDefault()
+    
+                // Validate User Session Parameter
+                if (!userId) {
+                    alert('User ID is missing from session. Please sign up again.')
+                    window.location.href = 'index.html'
+                    return
+                }
+    
+                // Collect Form Values
+                const interestLevel = parseInt(slider.value, 10)
+                const apClass = document.getElementById('ap-class').value
+    
+                if (!apClass) {
+                    alert('Please select an AP class before submitting.')
+                    return
+                }
+    
+                // Prevent multiple submissions
+                submitBtn.disabled = true
+                submitBtn.textContent = 'Submitting...'
+    
+                try {
+                    // Insert payload into Supabase with pre-order tracking
+                    const { error: surveyError } = await _supabase
+                        .from('surveys')
+                        .insert([
+                            {
+                                user_id: userId,
+                                interest_level: interestLevel,
+                                requested_ap_class: apClass,
+                                is_preorder: true,
+                                discount_code: 'PREORDER_2026'
+                            }
+                        ])
+    
+                    if (surveyError) throw surveyError
+    
+                    // Redirect on success
+                    window.location.href = 'sign-off.html'
+    
+                } catch (error) {
+                    console.error('Error saving survey response:', error)
+                    alert('Save error: ' + (error.message || 'Unable to submit survey.'))
+                    
+                    // Re-enable submit button on failure
+                    submitBtn.disabled = false
+                    submitBtn.textContent = 'SUBMIT'
+                }
+            })
         }
-
-        // Collect Form Values
-        const interestLevel = parseInt(slider.value, 10)
-        const apClass = document.getElementById('ap-class').value
-
-        if (!apClass) {
-            alert('Please select an AP class before submitting.')
-            return
-        }
-
-        // Prevent multiple submissions
-        submitBtn.disabled = true
-        submitBtn.textContent = 'Submitting...'
-
-        try {
-            // Insert payload into Supabase with pre-order tracking
-            const { error: surveyError } = await _supabase
-                .from('surveys')
-                .insert([
-                    {
-                        user_id: userId,
-                        interest_level: interestLevel,
-                        requested_ap_class: apClass,
-                        is_preorder: true,
-                        discount_code: 'PREORDER_2026'
-                    }
-                ])
-
-            if (surveyError) throw surveyError
-
-            // Redirect on success
-            window.location.href = 'sign-off.html'
-
-        } catch (error) {
-            console.error('Error saving survey response:', error)
-            alert('Save error: ' + (error.message || 'Unable to submit survey.'))
-            
-            // Re-enable submit button on failure
-            submitBtn.disabled = false
-            submitBtn.textContent = 'SUBMIT'
-        }
-    })
-</script>
+    
+        initSurvey()
+    </script>
 </body>
 
 </html>

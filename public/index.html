@@ -45,32 +45,35 @@
         <button type="submit">Create Account</button>
     </form>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-        const { createClient } = supabase
-        const supabaseUrl = 'https://xlmznkbswafqvwpjnysz.supabase.co'
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhsbXpua2Jzd2FmcXZ3cGpueXN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyNTA5NzgsImV4cCI6MjA5OTgyNjk3OH0.YZzATr4Ol0rmJOGNyJ3L-cFpqo6ejF-CCdimgZfVzd4'
+    \
+<script>
+    async function initSignup() {
+        // 1. Fetch credentials loaded from .env by the server
+        const configRes = await fetch('/api/config')
+        const config = await configRes.json()
 
-        const _supabase = createClient(supabaseUrl, supabaseKey)
+        const { createClient } = supabase
+        const _supabase = createClient(config.supabaseUrl, config.supabaseKey)
 
         const signupForm = document.getElementById('signup-form')
 
         signupForm.addEventListener('submit', async (e) => {
             e.preventDefault()
 
-            // 1. Grab all input values
+            // Grab input values
             const name = document.getElementById('name').value.trim() || 'Student'
             const email = document.getElementById('email').value.trim()
             const password = document.getElementById('password').value
             const grade = document.getElementById('grade').value
             const gpa = document.getElementById('gpa').value
 
-            // 2. Validation
+            // Validation
             if (password.length < 6) {
                 alert('Password must be at least 6 characters long.')
                 return
             }
 
-            // 3. Create Auth Account
+            // Create Auth Account
             const { data, error } = await _supabase.auth.signUp({
                 email: email,
                 password: password,
@@ -82,8 +85,7 @@
                 return
             }
 
-            // 4. Save extra fields to the profiles table
-            // 4. Save extra fields to the profiles table
+            // Save extra fields to the profiles table
             if (data?.user) {
                 const { error: profileError } = await _supabase
                     .from('profiles')
@@ -99,13 +101,17 @@
                 if (profileError) {
                     console.error('Error creating/updating profile:', profileError)
                     alert('Profile save error: ' + profileError.message)
+                    return
                 }
-            }
 
-            // 5. Redirect to survey
-            window.location.href = `survey.html?uid=${data.user.id}`
+                // Redirect to survey with user ID
+                window.location.href = `survey.html?uid=${data.user.id}`
+            }
         })
-    </script>
+    }
+
+    initSignup()
+</script>
 </body>
 
 </html>
