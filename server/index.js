@@ -1,24 +1,28 @@
-// server/index.js
-require('dotenv').config() // Automatically reads .env from project root
 const express = require('express')
-const path = require('path')
-
 const app = express()
 
 app.use(express.json())
-app.use(express.static(path.join(__dirname, '../public')))
 
-// Route to expose non-sensitive public keys to the client script
+// API Route for Config
 app.get('/api/config', (req, res) => {
-    res.json({
-        supabaseUrl: process.env.SUPABASE_URL,
-        supabaseKey: process.env.SUPABASE_ANON_KEY
-    })
+    try {
+        const supabaseUrl = process.env.SUPABASE_URL
+        const supabaseKey = process.env.SUPABASE_ANON_KEY
+
+        if (!supabaseUrl || !supabaseKey) {
+            return res.status(500).json({ 
+                error: 'Missing SUPABASE_URL or SUPABASE_ANON_KEY in Vercel Environment Variables.' 
+            })
+        }
+
+        return res.status(200).json({
+            supabaseUrl: supabaseUrl,
+            supabaseKey: supabaseKey
+        })
+    } catch (err) {
+        return res.status(500).json({ error: err.message || 'Server error' })
+    }
 })
 
-const PORT = process.env.PORT || 3000
-if (process.env.NODE_ENV !== 'production') {
-    app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`))
-}
-
+// Export the Express app for Vercel Serverless
 module.exports = app
