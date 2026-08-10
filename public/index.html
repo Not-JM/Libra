@@ -45,7 +45,7 @@
         <button type="submit">Create Account</button>
     </form>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    \
+    
 <script>
     async function initSignup() {
         // 1. Fetch credentials loaded from .env by the server
@@ -73,10 +73,18 @@
                 return
             }
 
-            // Create Auth Account
+            // Create Auth Account & Pass Profile Metadata
             const { data, error } = await _supabase.auth.signUp({
                 email: email,
                 password: password,
+                options: {
+                    emailRedirectTo: 'https://libra-taupe.vercel.app/survey.html',
+                    data: {
+                        display_name: name,
+                        grade_level: grade,
+                        gpa: gpa
+                    }
+                }
             })
 
             if (error) {
@@ -85,7 +93,7 @@
                 return
             }
 
-            // Save extra fields to the profiles table
+            // Fallback frontend profile save (Works if RLS policy allows anon insert)
             if (data?.user) {
                 const { error: profileError } = await _supabase
                     .from('profiles')
@@ -100,11 +108,14 @@
 
                 if (profileError) {
                     console.error('Error creating/updating profile:', profileError)
-                    alert('Profile save error: ' + profileError.message)
-                    return
                 }
+            }
 
-                // Redirect to survey with user ID
+            // Check if confirmation email was sent or if user is already logged in
+            if (data?.user && !data?.session) {
+                alert('Sign-up successful! Please check your email inbox to confirm your account before logging in.')
+            } else if (data?.user && data?.session) {
+                // If email confirmation is disabled, redirect immediately
                 window.location.href = `survey.html?uid=${data.user.id}`
             }
         })
