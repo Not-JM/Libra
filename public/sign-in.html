@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Libra</title>
+    <link rel="stylesheet" href="sign-in-styles.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+    <div class="top-login-container">
+        <span class="login-text">Already have an account?</span>
+        <a href="login.html" class="top-login-btn">Log In</a>
+    </div>
+    <form id="signup-form" class="sign-in-box">
+        <div class="title">SIGN UP</div>
+        <input id="name" type="text" placeholder="Name (optional)">
+        <input id="email" type="email" placeholder="Email" required>
+        <input id="password" type="password" placeholder="Password" required>
+        <div class="select-row">
+            <select id="grade" class="grade-select" required>
+                <option value="" disabled selected hidden>Grade Level</option>
+                <option value="Freshman">Freshman - 9th</option>
+                <option value="Sophomore">Sophomore - 10th</option>
+                <option value="Junior">Junior - 11th</option>
+                <option value="Senior">Senior - 12th</option>
+            </select>
+            <select id="gpa" class="gpa-select" required>
+                <option value="" disabled selected hidden>GPA</option>
+                <option value="4.0+">4.0+</option>
+                <option value="3.5-3.9">3.5-3.9</option>
+                <option value="3.0-3.4">3.0-3.4</option>
+                <option value="2.5-2.9">2.5-2.9</option>
+                <option value="<2.5">&lt;2.5</option>
+            </select>
+        </div>
+        <button type="submit">Create Account</button>
+    </form>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const { createClient } = supabase
+        const supabaseUrl = 'https://xlmznkbswafqvwpjnysz.supabase.co'
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhsbXpua2Jzd2FmcXZ3cGpueXN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyNTA5NzgsImV4cCI6MjA5OTgyNjk3OH0.YZzATr4Ol0rmJOGNyJ3L-cFpqo6ejF-CCdimgZfVzd4'
+
+        const _supabase = createClient(supabaseUrl, supabaseKey)
+
+        const signupForm = document.getElementById('signup-form')
+
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault()
+
+            // 1. Grab all input values
+            const name = document.getElementById('name').value.trim() || 'Student'
+            const email = document.getElementById('email').value.trim()
+            const password = document.getElementById('password').value
+            const grade = document.getElementById('grade').value
+            const gpa = document.getElementById('gpa').value
+
+            // 2. Validation
+            if (password.length < 6) {
+                alert('Password must be at least 6 characters long.')
+                return
+            }
+
+            // 3. Create Auth Account
+            const { data, error } = await _supabase.auth.signUp({
+                email: email,
+                password: password,
+            })
+
+            if (error) {
+                console.error('Supabase Error Details:', error)
+                alert('Error signing up: ' + (error.message || JSON.stringify(error)))
+                return
+            }
+
+            // 4. Save extra fields to the profiles table
+            // 4. Save extra fields to the profiles table
+            if (data?.user) {
+                const { error: profileError } = await _supabase
+                    .from('profiles')
+                    .upsert([
+                        {
+                            id: data.user.id,
+                            display_name: name,
+                            grade_level: grade,
+                            gpa: gpa
+                        }
+                    ])
+
+                if (profileError) {
+                    console.error('Error creating/updating profile:', profileError)
+                    alert('Profile save error: ' + profileError.message)
+                }
+            }
+
+            // 5. Redirect to Thank you
+            window.location.href = 'dashboard.html'
+        })
+    </script>
+</body>
+
+</html>

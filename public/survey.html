@@ -8,8 +8,12 @@
     <link rel="stylesheet" href="sign-in-styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Georgian:wght@100..900&family=Noto+Serif+Tibetan:wght@100..900&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@700&display=swap"
+        rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Serif+Georgian:wght@100..900&family=Noto+Serif+Tibetan:wght@100..900&display=swap"
+        rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -94,49 +98,49 @@
             // 1. Fetch credentials loaded from .env by the server
             const configRes = await fetch('/api/config')
             const config = await configRes.json()
-    
+
             const { createClient } = supabase
             const _supabase = createClient(config.supabaseUrl, config.supabaseKey)
-    
+
             // 2. DOM Elements
             const slider = document.getElementById('interest-slider')
             const sliderDisplay = document.getElementById('slider-value-display')
             const surveyForm = document.getElementById('survey-form')
             const submitBtn = surveyForm.querySelector('button[type="submit"]')
-    
+
             // 3. Extract User ID from URL parameters
             const urlParams = new URLSearchParams(window.location.search)
             const userId = urlParams.get('uid')
-    
+
             // 4. Dynamic UI Updates
             slider.addEventListener('input', () => {
                 sliderDisplay.textContent = slider.value
             })
-    
+
             // 5. Form Submission Handler
             surveyForm.addEventListener('submit', async (e) => {
                 e.preventDefault()
-    
+
                 // Validate User Session Parameter
                 if (!userId) {
                     alert('User ID is missing from session. Please sign up again.')
                     window.location.href = 'index.html'
                     return
                 }
-    
+
                 // Collect Form Values
                 const interestLevel = parseInt(slider.value, 10)
                 const apClass = document.getElementById('ap-class').value
-    
+
                 if (!apClass) {
                     alert('Please select an AP class before submitting.')
                     return
                 }
-    
+
                 // Prevent multiple submissions
                 submitBtn.disabled = true
                 submitBtn.textContent = 'Submitting...'
-    
+
                 try {
                     // Insert payload into Supabase with pre-order tracking
                     const { error: surveyError } = await _supabase
@@ -150,23 +154,23 @@
                                 discount_code: 'PREORDER_2026'
                             }
                         ])
-    
+
                     if (surveyError) throw surveyError
-    
+
                     // Redirect on success
                     window.location.href = 'sign-off.html'
-    
+
                 } catch (error) {
                     console.error('Error saving survey response:', error)
                     alert('Save error: ' + (error.message || 'Unable to submit survey.'))
-                    
+
                     // Re-enable submit button on failure
                     submitBtn.disabled = false
                     submitBtn.textContent = 'SUBMIT'
                 }
             })
         }
-    
+
         initSurvey()
     </script>
 </body>

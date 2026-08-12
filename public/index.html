@@ -8,8 +8,14 @@
     <link rel="stylesheet" href="sign-in-styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@700&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap"
+        rel="stylesheet">
+    
+    <!-- Cloudflare Turnstile API Script -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -20,11 +26,17 @@
         </span>
         <span class="brand-logo-text">Tauro</span>
     </div>
+    
     <form id="signup-form" class="sign-in-box">
         <div class="title">SIGN UP</div>
+        
+        <!-- Honeypot Field: Invisible to human users, traps automated bots -->
+        <input type="text" name="website" id="honeypot" style="display:none;" tabindex="-1" autocomplete="off">
+
         <input id="name" type="text" placeholder="Name (optional)">
         <input id="email" type="email" placeholder="Email" required>
         <input id="password" type="password" placeholder="Password" required>
+        
         <div class="select-row">
             <select id="grade" class="grade-select" required>
                 <option value="" disabled selected hidden>Grade Level</option>
@@ -42,87 +54,106 @@
                 <option value="<2.5">&lt;2.5</option>
             </select>
         </div>
+
+        <!-- Turnstile Widget: Replace YOUR_SITE_KEY with the Site Key from Cloudflare -->
+        <div class="cf-turnstile" data-sitekey="0x4AAAAAAENiA7jAha8_OFNB"></div>
+
         <button type="submit">Create Account</button>
     </form>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-<script>
-    async function initSignup() {
-        // 1. Fetch credentials loaded from .env by the server
-        const configRes = await fetch('/api/config')
-        const config = await configRes.json()
 
-        const { createClient } = supabase
-        const _supabase = createClient(config.supabaseUrl, config.supabaseKey)
+    <script>
+        async function initSignup() {
+            // Fetch credentials loaded from .env by the server
+            const configRes = await fetch('/api/config')
+            const config = await configRes.json()
 
-        const signupForm = document.getElementById('signup-form')
+            const { createClient } = supabase
+            const _supabase = createClient(config.supabaseUrl, config.supabaseKey)
 
-        signupForm.addEventListener('submit', async (e) => {
-            e.preventDefault()
+            const signupForm = document.getElementById('signup-form')
 
-            // Grab input values
-            const name = document.getElementById('name').value.trim() || 'Student'
-            const email = document.getElementById('email').value.trim()
-            const password = document.getElementById('password').value
-            const grade = document.getElementById('grade').value
-            const gpa = document.getElementById('gpa').value
+            signupForm.addEventListener('submit', async (e) => {
+                e.preventDefault()
 
-            // Validation
-            if (password.length < 6) {
-                alert('Password must be at least 6 characters long.')
-                return
-            }
-
-            // Create Auth Account & Pass Profile Metadata
-            const { data, error } = await _supabase.auth.signUp({
-                email: email,
-                password: password,
-                options: {
-                    emailRedirectTo: 'https://libra-taupe.vercel.app/survey.html',
-                    data: {
-                        display_name: name,
-                        grade_level: grade,
-                        gpa: gpa
-                    }
+                // Verify Cloudflare Turnstile CAPTCHA response
+                const turnstileResponse = document.querySelector('[name="cf-turnstile-response"]')?.value
+                if (!turnstileResponse) {
+                    alert('Please complete the CAPTCHA check to verify you are human.')
+                    return
                 }
-            })
 
-            if (error) {
-                console.error('Supabase Error Details:', error)
-                alert('Error signing up: ' + (error.message || JSON.stringify(error)))
-                return
-            }
+                // Check Honeypot Field (Silently redirect if filled by a bot)
+                const honeypot = document.getElementById('honeypot').value
+                if (honeypot) {
+                    window.location.href = 'survey.html'
+                    return
+                }
 
-            // Fallback frontend profile save (Works if RLS policy allows anon insert)
-            if (data?.user) {
-                const { error: profileError } = await _supabase
-                    .from('profiles')
-                    .upsert([
-                        {
-                            id: data.user.id,
+                // Grab input values
+                const name = document.getElementById('name').value.trim() || 'Student'
+                const email = document.getElementById('email').value.trim()
+                const password = document.getElementById('password').value
+                const grade = document.getElementById('grade').value
+                const gpa = document.getElementById('gpa').value
+
+                // Validate password length
+                if (password.length < 6) {
+                    alert('Password must be at least 6 characters long.')
+                    return
+                }
+
+                // Block common fake / disposable email provider domains
+                const domain = email.split('@')[1]?.toLowerCase()
+                const fakeDomains = ['mailinator.com', 'yopmail.com', '10minutemail.com', 'tempmail.com', 'guerrillamail.com']
+                if (fakeDomains.includes(domain)) {
+                    alert('Please use a valid personal or school email address.')
+                    return
+                }
+
+                // Create Auth Account
+                const { data, error } = await _supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
                             display_name: name,
                             grade_level: grade,
                             gpa: gpa
                         }
-                    ])
+                    }
+                })
 
-                if (profileError) {
-                    console.error('Error creating/updating profile:', profileError)
+                if (error) {
+                    console.error('Supabase Error Details:', error)
+                    alert('Error signing up: ' + (error.message || JSON.stringify(error)))
+                    return
                 }
-            }
 
-            // Check if confirmation email was sent or if user is already logged in
-            if (data?.user && !data?.session) {
-                alert('Sign-up successful! Please check your email inbox to confirm your account before logging in.')
-            } else if (data?.user && data?.session) {
-                // If email confirmation is disabled, redirect immediately
-                window.location.href = `survey.html?uid=${data.user.id}`
-            }
-        })
-    }
+                // Save extra fields to the profiles table
+                if (data?.user) {
+                    const { error: profileError } = await _supabase
+                        .from('profiles')
+                        .upsert([
+                            {
+                                id: data.user.id,
+                                display_name: name,
+                                grade_level: grade,
+                                gpa: gpa
+                            }
+                        ])
 
-    initSignup()
-</script>
+                    if (profileError) {
+                        console.error('Error updating profile:', profileError)
+                    }
+
+                    // Direct redirect to survey
+                    window.location.href = `survey.html?uid=${data.user.id}`
+                }
+            })
+        }
+
+        initSignup()
+    </script>
 </body>
 
 </html>
