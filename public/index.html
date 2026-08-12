@@ -90,12 +90,16 @@
                 }
 
                 // Grab input values
-                const name = document.getElementById('name').value.trim() || 'Student'
+                const name = document.getElementById('name').value.trim()
                 const email = document.getElementById('email').value.trim()
                 const password = document.getElementById('password').value
                 const grade = document.getElementById('grade').value
                 const gpa = document.getElementById('gpa').value
-
+                
+                if (!name) {
+                    alert('Please enter your name.')
+                    return
+                }
                 // Validate password length
                 if (password.length < 6) {
                     alert('Password must be at least 6 characters long.')
